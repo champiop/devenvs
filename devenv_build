@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 [options] <devenv_name>"
+  echo ""
+  echo "Options:"
+  echo "  -h, --help    Afficher cette aide"
+  echo ""
+  echo "Environnements disponibles pour build :"
+  if [ -d "$HOME/.devenvs" ]; then
+    ls -d "$HOME/.devenvs"/*/ 2>/dev/null | xargs -n 1 basename | sed 's/^/  /'
+  else
+    echo "  (Aucun dossier ~/.devenvs trouvé)"
+  fi
+  exit 1
+}
+
+if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  usage
+fi
+
+DEVENV_NAME="$1"
+
+docker build --rm --tag dev-$DEVENV_NAME:latest \
+  --build-arg USER_ID=$(id -u) \
+  --build-arg GROUP_ID=$(id -g) \
+  --no-cache \
+  $DEVENV_NAME

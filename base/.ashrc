@@ -1,0 +1,19 @@
+# ~/.ashrc: interactive shell configuration for BusyBox Ash
+
+# Command line prompt
+parse_git_branch() {
+     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+}
+
+PS1='\[\033[01;32m\]\u@${DEVENV_NAME:-\h}\[\033[00m\]:\[\033[01;34m\]\w\[\033[00;33m\]$(parse_git_branch)\[\033[00m\]#  '
+
+# Custom Aliases
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+# You may want to put all your additions into a separate file like
+# ~/.ash_aliases, instead of adding them here directly.
+
+if [ -f ~/.ash_aliases ]; then
+    . ~/.ash_aliases
+fi

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+WORKSPACE=""
+CMD=""
+
+usage() {
+  echo "Usage: $0 [options] <devenv_name> [cmd]"
+  echo ""
+  echo "Options:"
+  echo "  -w, --workspace <path>  Spécifier le chemin du workspace"
+  echo "  -l, --list              Lister les images disponibles"
+  echo "  -h, --help              Afficher cette aide"
+  exit 1
+}
+
+list() {
+  docker images --format '{{.Repository}}' 'dev-*' | sed 's/^dev-//'
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      ;;
+    -w|--workspace)
+      if [[ -z "${2:-}" ]]; then
+        echo "Erreur: L'option $1 requiert un argument." >&2
+        exit 1
+      fi
+      WORKSPACE="$2"
+      shift 2
+      ;;
+    -l|--list)
+      list
+      exit 0
+      ;;
+    -*)
+      echo "Erreur: Option inconnue $1" >&2
+      usage
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ $# -eq 0 ]; then
+  echo "Erreur: Le nom de l'environnement (devenv_name) est requis." >&2
+  usage
+fi
+
+DEVENV_NAME="$1"
+shift
+
+if [ $# -gt 0 ]; then
+  CMD="$@"
+fi
+
+DOCKER_RUN_CMD=(docker run --rm --interactive --tty)
+DOCKER_RUN_CMD+=(--user "$(id -u):$(id -g)")
+DOCKER_RUN_CMD+=(--env DEVENV_NAME="$DEVENV_NAME")
+
+if [[ -n "$WORKSPACE" ]]; then
+  ABS_WORKSPACE=$(cd "$WORKSPACE" && pwd || echo "$WORKSPACE")
+  DOCKER_RUN_CMD+=(--volume "$ABS_WORKSPACE:/home/dev/workspace")
+  DOCKER_RUN_CMD+=(--workdir /home/dev/workspace)
+fi
+
+DOCKER_RUN_CMD+=("dev-$DEVENV_NAME:latest")
+
+if [[ -n "$CMD" ]]; then
+  DOCKER_RUN_CMD+=($CMD)
+fi
+
+printf "%s\n" "${DOCKER_RUN_CMD[*]}"
+"${DOCKER_RUN_CMD[@]}"
