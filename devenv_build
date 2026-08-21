@@ -2,29 +2,110 @@
 
 set -euo pipefail
 
+devenv_args_summary() {
+  local devenv="$1"
+  local args_file="$HOME/.devenvs/$devenv/config.txt"
+  local summary=""
+
+  [ -f "$args_file" ] || { echo ""; return; }
+
+  while IFS='=' read -r key rest; do
+    [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+    local value="${rest%%#*}"
+    value="$(echo "$value" | xargs)"
+    if [ -z "$summary" ]; then
+      summary="$key=$value"
+    else
+      summary="$summary, $key=$value"
+    fi
+  done < "$args_file"
+
+  echo "$summary"
+}
+
 usage() {
   echo "Usage: $0 [options] <devenv_name>"
   echo ""
   echo "Options:"
-  echo "  -h, --help    Afficher cette aide"
+  echo "  -h, --help              Afficher cette aide"
+  echo "  --build-arg KEY=VALUE   Argument de build additionnel (répétable)"
+  echo "  --tag TAG               Tag à utiliser (défaut: latest)"
   echo ""
   echo "Environnements disponibles pour build :"
   if [ -d "$HOME/.devenvs" ]; then
-    ls -d "$HOME/.devenvs"/*/ 2>/dev/null | xargs -n 1 basename | sed 's/^/  /'
+    for dir in "$HOME/.devenvs"/*/; do
+      [ -d "$dir" ] || continue
+      local name summary
+      name="$(basename "$dir")"
+      summary="$(devenv_args_summary "$name")"
+      if [ -n "$summary" ]; then
+        printf "  %-20s [%s]\n" "$name" "$summary"
+      else
+        printf "  %s\n" "$name"
+      fi
+    done
   else
     echo "  (Aucun dossier ~/.devenvs trouvé)"
   fi
+
   exit 1
 }
 
-if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+if [ $# -eq 0 ]; then
   usage
 fi
 
-DEVENV_NAME="$1"
+TAG="latest"
+NO_CACHE="--no-cache"
+EXTRA_BUILD_ARGS=()
+POSITIONAL=()
 
-docker build --rm --tag dev-$DEVENV_NAME:latest \
-  --build-arg USER_ID=$(id -u) \
-  --build-arg GROUP_ID=$(id -g) \
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      usage
+      ;;
+    --build-arg)
+      [ $# -ge 2 ] || { echo "Erreur: --build-arg nécessite une valeur (KEY=VALUE)"; exit 1; }
+      EXTRA_BUILD_ARGS+=(--build-arg "$2")
+      shift 2
+      ;;
+    --tag)
+      [ $# -ge 2 ] || { echo "Erreur: --tag nécessite une valeur"; exit 1; }
+      TAG="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      POSITIONAL+=("$@")
+      break
+      ;;
+    -*)
+      echo "Option inconnue: $1"
+      usage
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ ${#POSITIONAL[@]} -eq 0 ]; then
+  echo "Erreur: <devenv_name> manquant"
+  usage
+fi
+
+DEVENV_NAME="${POSITIONAL[0]}"
+
+if [ ! -d "$HOME/.devenvs/$DEVENV_NAME" ]; then
+  echo "Erreur: environnement '$DEVENV_NAME' introuvable dans ~/.devenvs"
+  exit 1
+fi
+
+docker build --rm --tag "dev-$DEVENV_NAME:$TAG" \
+  --build-arg USER_ID="$(id -u)" \
+  --build-arg GROUP_ID="$(id -g)" \
   --no-cache \
-  ~/.devenvs/$DEVENV_NAME
+  "${EXTRA_BUILD_ARGS[@]}" \
+  "$HOME/.devenvs/$DEVENV_NAME"

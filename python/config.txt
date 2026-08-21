@@ -1,0 +1,2 @@
+# format: KEY=default_value # description
+PYTHON_VERSION=3.13 # Version de Python

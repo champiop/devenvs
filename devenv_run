@@ -3,6 +3,7 @@
 set -euo pipefail
 
 WORKSPACE=""
+TAG="latest"
 CMD=""
 
 usage() {
@@ -10,6 +11,7 @@ usage() {
   echo ""
   echo "Options:"
   echo "  -w, --workspace <path>  Spécifier le chemin du workspace"
+  echo "  --tag TAG               Tag à utiliser (défaut: latest)"
   echo "  -l, --list              Lister les images disponibles"
   echo "  -h, --help              Afficher cette aide"
   exit 1
@@ -30,6 +32,11 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       WORKSPACE="$2"
+      shift 2
+      ;;
+    --tag)
+      [ $# -ge 2 ] || { echo "Erreur: --tag nécessite une valeur"; exit 1; }
+      TAG="$2"
       shift 2
       ;;
     -l|--list)
@@ -68,7 +75,7 @@ if [[ -n "$WORKSPACE" ]]; then
   DOCKER_RUN_CMD+=(--workdir /home/dev/workspace)
 fi
 
-DOCKER_RUN_CMD+=("dev-$DEVENV_NAME:latest")
+DOCKER_RUN_CMD+=("dev-$DEVENV_NAME:$TAG")
 
 if [[ -n "$CMD" ]]; then
   DOCKER_RUN_CMD+=($CMD)
