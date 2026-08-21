@@ -27,4 +27,4 @@ docker build --rm --tag dev-$DEVENV_NAME:latest \
   --build-arg USER_ID=$(id -u) \
   --build-arg GROUP_ID=$(id -g) \
   --no-cache \
-  $DEVENV_NAME
+  ~/.devenvs/$DEVENV_NAME
