@@ -21,5 +21,8 @@ COPY nvim /home/dev/.config/nvim
 RUN chown -R dev:dev /home/dev
 
 USER dev
+
+RUN nvim --headless "+Lazy! sync" +qa
+
 WORKDIR /home/dev
 CMD ["ash", "-l"]
