@@ -52,7 +52,7 @@ usage() {
 }
 
 if [ $# -eq 0 ]; then
-  usage
+  DEFAULT_DOCKERFILE="DEV.Dockerfile"
 fi
 
 TAG="common"
@@ -91,7 +91,22 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ${#POSITIONAL[@]} -eq 0 ]; then
-  echo "Erreur: <devenv_name> manquant"
+  if [ -f "./$DEFAULT_DOCKERFILE" ]; then
+    IMAGE_NAME="$(basename "$PWD")"
+ 
+    docker build --rm \
+      --tag "dev-$IMAGE_NAME:$TAG" \
+      --build-arg USER_ID="$(id -u)" \
+      --build-arg GROUP_ID="$(id -g)" \
+      --no-cache \
+      --file "./$DEFAULT_DOCKERFILE" \
+      "${EXTRA_BUILD_ARGS[@]}" \
+      .
+ 
+    exit 0
+  fi
+
+  echo "Erreur: <devenv_name> manquant et aucun DEV.Dockerfile trouvé dans le répertoire courant"
   usage
 fi
 
