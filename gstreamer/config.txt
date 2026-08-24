@@ -1,0 +1,2 @@
+# format: KEY=default_value # description
+GSTREAMER_VERSION=1.26 # Version majeure GStreamer
