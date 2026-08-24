@@ -3,7 +3,7 @@
 set -euo pipefail
 
 WORKSPACE=""
-TAG="latest"
+TAG="common"
 CMD=""
 
 usage() {
@@ -11,14 +11,14 @@ usage() {
   echo ""
   echo "Options:"
   echo "  -w, --workspace <path>  Spécifier le chemin du workspace"
-  echo "  --tag TAG               Tag à utiliser (défaut: latest)"
+  echo "  --tag TAG               Tag à utiliser (défaut: common)"
   echo "  -l, --list              Lister les images disponibles"
   echo "  -h, --help              Afficher cette aide"
   exit 1
 }
 
 list() {
-  docker images --format '{{.Repository}}' 'dev-*' | sed 's/^dev-//'
+  docker images 'dev-*' | tail -n +2 | sed -E 's/^dev-([^[:space:]]+).*/\1/'
 }
 
 while [[ $# -gt 0 ]]; do

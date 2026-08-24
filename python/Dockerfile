@@ -1,4 +1,4 @@
-FROM dev-base
+FROM dev-base:common
 
 ARG PYTHON_VERSION=3.13
 
